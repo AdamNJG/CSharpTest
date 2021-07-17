@@ -1,0 +1,15 @@
+D:\projects\C#test\FTPLogger\FTPLogger\obj\Debug\netcoreapp3.1\FTPLogger.csproj.AssemblyReference.cache
+D:\projects\C#test\FTPLogger\FTPLogger\obj\Debug\netcoreapp3.1\FTPLogger.FTPLogger.resources
+D:\projects\C#test\FTPLogger\FTPLogger\obj\Debug\netcoreapp3.1\FTPLogger.csproj.GenerateResource.cache
+D:\projects\C#test\FTPLogger\FTPLogger\obj\Debug\netcoreapp3.1\FTPLogger.AssemblyInfoInputs.cache
+D:\projects\C#test\FTPLogger\FTPLogger\obj\Debug\netcoreapp3.1\FTPLogger.AssemblyInfo.cs
+D:\projects\C#test\FTPLogger\FTPLogger\obj\Debug\netcoreapp3.1\FTPLogger.csproj.CoreCompileInputs.cache
+D:\projects\C#test\FTPLogger\FTPLogger\bin\Debug\netcoreapp3.1\FTPLogger.exe
+D:\projects\C#test\FTPLogger\FTPLogger\bin\Debug\netcoreapp3.1\FTPLogger.deps.json
+D:\projects\C#test\FTPLogger\FTPLogger\bin\Debug\netcoreapp3.1\FTPLogger.runtimeconfig.json
+D:\projects\C#test\FTPLogger\FTPLogger\bin\Debug\netcoreapp3.1\FTPLogger.runtimeconfig.dev.json
+D:\projects\C#test\FTPLogger\FTPLogger\bin\Debug\netcoreapp3.1\FTPLogger.dll
+D:\projects\C#test\FTPLogger\FTPLogger\bin\Debug\netcoreapp3.1\FTPLogger.pdb
+D:\projects\C#test\FTPLogger\FTPLogger\obj\Debug\netcoreapp3.1\FTPLogger.dll
+D:\projects\C#test\FTPLogger\FTPLogger\obj\Debug\netcoreapp3.1\FTPLogger.pdb
+D:\projects\C#test\FTPLogger\FTPLogger\obj\Debug\netcoreapp3.1\FTPLogger.genruntimeconfig.cache
