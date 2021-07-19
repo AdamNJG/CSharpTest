@@ -27,15 +27,23 @@ namespace FTPLogger
 
         private void FtpConnect_Click(object sender, EventArgs e)
         {
+            logs.ListBuilder(hostBox.Text, usernameBox.Text, passwordBox.Text);
 
+            logDisplay.Text = logs.ListPrinter(logDisplay.Text);
+
+            Timer t = new Timer();
+
+            t.Interval = 15000; // specify interval time as you want
+            t.Tick += new EventHandler(timer_Tick);
+            t.Start();
+
+            void timer_Tick(object sender, EventArgs e)
+            {
                 logs.ListBuilder(hostBox.Text, usernameBox.Text, passwordBox.Text);
-                
+
                 logDisplay.Text = logs.ListPrinter(logDisplay.Text);
-            
+            }
         }
-
-
-
 
     }
 }

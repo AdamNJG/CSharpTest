@@ -4,18 +4,16 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Net.Cache;
 using System.Text;
-using System.Threading;
-using System.Windows.Forms;
 
 namespace FTPLogger
 {
 	public class LogHandler
 	{
-		public List<Log> directories = new List<Log>();
-		public List<Log> checkedDir = new List<Log>();
-		public List<Log> toCheck = new List<Log>();
+		public HashSet<Log> directories = new HashSet<Log>();
+		public HashSet<Log> checkedDir = new HashSet<Log>();
+		public HashSet<Log> toCheck = new HashSet<Log>();
+		public HashSet<Log> printedLogs = new HashSet<Log>();
 
 		public async void WriteToFile(String content, String path)
         {
@@ -24,9 +22,9 @@ namespace FTPLogger
 			await File.WriteAllTextAsync(checkedPath + "\\log.txt", content);
         }
 
-		public List<Log> ConnectFtp(String host, String user, String password)
+		public HashSet<Log> ConnectFtp(String host, String user, String password)
         {
-			List<Log> tempLogs = new List<Log>();
+			HashSet<Log> tempLogs = new HashSet<Log>();
 			try
 			{
 				
@@ -75,14 +73,33 @@ namespace FTPLogger
 
 		public String ListPrinter(String prev)
         {
+			int count = 0;
 			StringBuilder sb = new StringBuilder(prev);
-			foreach (Log log in directories)
+			if (!directories.Equals(printedLogs))
 			{
-				sb.Append(log.GetFullString());
-				sb.Append(Environment.NewLine);
+				foreach (Log log in directories)
+				{
+					if (printedLogs.Count() > 0)
+					{
+
+						if (!printedLogs.Contains(log))
+						{
+							Debug.WriteLine("what");
+							sb.Append(log.GetFullString());
+							sb.Append(Environment.NewLine);
+						}
+
+					}
+					else
+					{
+						sb.Append(log.GetFullString());
+						sb.Append(Environment.NewLine);
+					}
+					Debug.WriteLine("yeah");
+				}
 			}
-			directories = new List<Log>();
-			
+			printedLogs = directories;
+
 			sb.Append("-- " + System.DateTime.Now + " --");
 			sb.Append(Environment.NewLine);
 			return sb.ToString();
@@ -91,36 +108,12 @@ namespace FTPLogger
 
 		public void ListBuilder(String host, String username, String password)
         {
+			
 			toCheck = ConnectFtp(host,username,password);
-			List<Log> tempList = new List<Log>();
-			List<String> newHosts = new List<String>();
+			HashSet<String> newHosts = new HashSet<String>();
 
 			foreach (Log log in toCheck)
 			{
-				if(checkedDir.Count() > 1)
-                {
-					List<Log> tempChecked = new List<Log>();
- 					foreach (Log check in checkedDir)
-						{
-							if (log.GetFullString() != check.GetFullString())
-							{
-								directories.Add(log);
-							    tempChecked.Add(log);
-								if (log.GetMetaData().Contains("drwxr-xr-x"))
-									{
-										String[] arr = log.GetFullString().Split(" ");
-										log.SetFolder(true);
-										String newHost = host + "/" + arr[21];
-										newHosts.Add(newHost);
-										tempList.Add(log);
-									}
-							}
-						}
-				
-					checkedDir.Add(tempChecked[tempChecked.Count() - 1]);
-				}
-				else
-				{
 					checkedDir.Add(log);
 					directories.Add(log);
 					if (log.GetMetaData().Contains("drwxr-xr-x"))
@@ -129,12 +122,8 @@ namespace FTPLogger
 						log.SetFolder(true);
 						String newHost = host + "/" + arr[21];
 						newHosts.Add(newHost);
-						tempList.Add(log);
 					}
-				}
 			}
-
-
 
 			if (newHosts.Count() > 0)
             {
@@ -144,61 +133,43 @@ namespace FTPLogger
 
 		public String host;
 
-		public void NextList(List<String> hostList, String username, String password)
+		public void NextList(HashSet<String> hostList, String username, String password)
 		{
-			List<Log> tempList = new List<Log>();
-
-			List<String> newHosts = new List<String>();
-
 		
+			HashSet<String> newHosts = new HashSet<String>();
+
 			foreach (String currentHost in hostList)
 			{
-				tempList.AddRange(ConnectFtp(currentHost, username, password));
+				toCheck = ConnectFtp(currentHost, username, password);
 				host = currentHost;
 			}
-			hostList.Remove(host);
 
-
-			List<Log> tempCheck = new List<Log>();
-
-			foreach (Log log in tempList)
+			foreach (Log log in toCheck)
 			{
 						foreach (Log check in checkedDir)
 						{
-					
 							if (!log.Equals(check))
 							{
 								directories.Add(log);
-								tempCheck.Add(log);
-
 							if (log.GetMetaData().Contains("drwxr-xr-x"))
 							{
 								String[] arr = log.GetFullString().Split(" ");
 								log.SetFolder(true);
 								String newHost = host + "/" + arr[21];
-								foreach (String checkHost in hostList)
-									{
-										if (newHost != checkHost)
-									{
+							foreach (String checkHost in hostList)
+							{
+								if (newHost != checkHost)
+								{
 									newHosts.Add(newHost);
 								}
-							}	
-
+							}
 						}
 					}
-
 				}	
 				checkedDir.Add(log);
 			}
-
-			foreach(Log log in directories)
-            {
-				Debug.WriteLine(log.GetFileName());
-            }
-
-			toCheck = tempCheck;
 			
-			if (toCheck.Count() > 0)
+			if (newHosts.Count() > 0)
 			{
 				NextList(newHosts, username, password);
 			}
