@@ -18,6 +18,7 @@ namespace FTPLogger
         }
 
 
+
         private void ExportButton_Click(object sender, EventArgs e)
         {
             logs.WriteToFile(logDisplay.Text, PathBox.Text);
@@ -26,7 +27,11 @@ namespace FTPLogger
 
         private void FtpConnect_Click(object sender, EventArgs e)
         {
-            logDisplay.Text = logs.ListIterator(logs.ListBuilder(hostBox.Text, usernameBox.Text, passwordBox.Text), logDisplay.Text);
+
+                logs.ListBuilder(hostBox.Text, usernameBox.Text, passwordBox.Text);
+                
+                logDisplay.Text = logs.ListPrinter(logDisplay.Text);
+            
         }
 
 

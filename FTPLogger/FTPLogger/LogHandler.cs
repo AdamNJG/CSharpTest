@@ -6,12 +6,16 @@ using System.Linq;
 using System.Net;
 using System.Net.Cache;
 using System.Text;
+using System.Threading;
 using System.Windows.Forms;
 
 namespace FTPLogger
 {
 	public class LogHandler
 	{
+		public List<Log> directories = new List<Log>();
+		public List<Log> checkedDir = new List<Log>();
+		public List<Log> toCheck = new List<Log>();
 
 		public async void WriteToFile(String content, String path)
         {
@@ -20,11 +24,12 @@ namespace FTPLogger
 			await File.WriteAllTextAsync(checkedPath + "\\log.txt", content);
         }
 
-		public List<String> ConnectFtp(String host, String user, String password)
+		public List<Log> ConnectFtp(String host, String user, String password)
         {
+			List<Log> tempLogs = new List<Log>();
 			try
 			{
-				List<string> logDirectories = new List<string>();
+				
 				FtpWebRequest request = (FtpWebRequest)WebRequest.Create("ftp://" +host + "/");
 				request.Method = WebRequestMethods.Ftp.ListDirectoryDetails;
 
@@ -37,68 +42,201 @@ namespace FTPLogger
 				
 
 				string line = reader.ReadLine();
+				
 				while (!string.IsNullOrEmpty(line))
 				{
-					var lineArr = line.Split('/');
-					line = lineArr[lineArr.Count() - 1];
-					logDirectories.Add(line);
+					Log log = LogFactory(line, false);
+					tempLogs.Add(log);
 					line = reader.ReadLine();
-				}
+				} 
 				reader.Close();
 
-				return logDirectories;
+				return tempLogs;
 
 			}
 			catch (WebException webEx)
 			{
-                List<String> error = new List<string>
-                {
-                    webEx.Message
-                };
-                return error;
+				Log errorLog = LogFactory(webEx.Message, true); 
+				tempLogs.Add(errorLog);
+				foreach (Log log in tempLogs)
+				{
+					Debug.WriteLine(log.GetFullString());
+				}
+				return tempLogs;
 			}
 			catch (Exception ex)
 			{
-                List<String> error = new List<string>
-                {
-                    ex.Message
-                };
-                return error;
+				Log errorLog = LogFactory(ex.Message, true);
+				tempLogs.Add(errorLog);
+				return tempLogs;
 			}
+			
 		}
 
-		public String ListIterator(List<String> logList, String logs)
-		{
-			StringBuilder sb = new StringBuilder(logs);
-			foreach (String s in logList)
+		public String ListPrinter(String prev)
+        {
+			StringBuilder sb = new StringBuilder(prev);
+			foreach (Log log in directories)
 			{
-				sb.Append(s);
+				sb.Append(log.GetFullString());
 				sb.Append(Environment.NewLine);
 			}
+			directories = new List<Log>();
+			
 			sb.Append("-- " + System.DateTime.Now + " --");
 			sb.Append(Environment.NewLine);
 			return sb.ToString();
-		}
 
-		public List<String> ListBuilder(String host, String username, String password)
+        }
+
+		public void ListBuilder(String host, String username, String password)
         {
-			List<String> logList = ConnectFtp(host,username,password);
-			List<String> moreLogs = new List<String>();
-			moreLogs.AddRange(logList);
+			toCheck = ConnectFtp(host,username,password);
+			List<Log> tempList = new List<Log>();
+			List<String> newHosts = new List<String>();
 
-			foreach (String s in logList)
+			foreach (Log log in toCheck)
 			{
-				if (s.Contains("drwxr-xr-x"))
+				if(checkedDir.Count() > 1)
+                {
+					List<Log> tempChecked = new List<Log>();
+ 					foreach (Log check in checkedDir)
+						{
+							if (log.GetFullString() != check.GetFullString())
+							{
+								directories.Add(log);
+							    tempChecked.Add(log);
+								if (log.GetMetaData().Contains("drwxr-xr-x"))
+									{
+										String[] arr = log.GetFullString().Split(" ");
+										log.SetFolder(true);
+										String newHost = host + "/" + arr[21];
+										newHosts.Add(newHost);
+										tempList.Add(log);
+									}
+							}
+						}
+				
+					checkedDir.Add(tempChecked[tempChecked.Count() - 1]);
+				}
+				else
 				{
-					String[] arr = s.Split(" ");
-					
-
-					moreLogs.AddRange(ConnectFtp(host + "/" + arr[21], username, password));
+					checkedDir.Add(log);
+					directories.Add(log);
+					if (log.GetMetaData().Contains("drwxr-xr-x"))
+					{
+						String[] arr = log.GetFullString().Split(" ");
+						log.SetFolder(true);
+						String newHost = host + "/" + arr[21];
+						newHosts.Add(newHost);
+						tempList.Add(log);
+					}
 				}
 			}
 
-			return moreLogs;
+
+
+			if (newHosts.Count() > 0)
+            {
+				NextList(newHosts, username, password);
+            }
 		}
 
+		public String host;
+
+		public void NextList(List<String> hostList, String username, String password)
+		{
+			List<Log> tempList = new List<Log>();
+
+			List<String> newHosts = new List<String>();
+
+		
+			foreach (String currentHost in hostList)
+			{
+				tempList.AddRange(ConnectFtp(currentHost, username, password));
+				host = currentHost;
+			}
+			hostList.Remove(host);
+
+
+			List<Log> tempCheck = new List<Log>();
+
+			foreach (Log log in tempList)
+			{
+						foreach (Log check in checkedDir)
+						{
+					
+							if (!log.Equals(check))
+							{
+								directories.Add(log);
+								tempCheck.Add(log);
+
+							if (log.GetMetaData().Contains("drwxr-xr-x"))
+							{
+								String[] arr = log.GetFullString().Split(" ");
+								log.SetFolder(true);
+								String newHost = host + "/" + arr[21];
+								foreach (String checkHost in hostList)
+									{
+										if (newHost != checkHost)
+									{
+									newHosts.Add(newHost);
+								}
+							}	
+
+						}
+					}
+
+				}	
+				checkedDir.Add(log);
+			}
+
+			foreach(Log log in directories)
+            {
+				Debug.WriteLine(log.GetFileName());
+            }
+
+			toCheck = tempCheck;
+			
+			if (toCheck.Count() > 0)
+			{
+				NextList(newHosts, username, password);
+			}
+		}
+
+
+		public Log LogFactory(String value, bool error)
+        {
+
+			String[] split = value.Split(" ");
+			Log log = new Log();
+			if (split.Length > 1 && !error)
+			{
+				if (split[0].Contains("drwxr-xr-x"))
+				{
+					log.SetFolder(true);
+				}
+				StringBuilder sb = new StringBuilder(log.GetMetaData());
+				for (int i = 0; i < 10; i++)
+				{
+					sb.Append(split[i]);
+				}
+				log.SetMetaData(sb.ToString());
+				log.SetFileName(split[21]);
+				log.SetError(error);
+				log.SetFullString(value);
+				log.SetDateUpdated(split[18] + split[19] + split[20]);
+			}
+			else { 
+				log.SetFullString(value);
+				log.SetError(error);
+			}
+
+            
+			return log;
+        }
+
 	}
+
+
 }
